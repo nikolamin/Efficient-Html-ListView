@@ -54,7 +54,7 @@ You can banchmark by telling only how many items you want to have
 ```
 	myList.setItemsCount(1000000);
 ```
-and populate them dynamicly:
+and populate them dynamically:
 ```
 var myList = new ListAdapter("#list", {
 	onItemCreate: function(item) {
@@ -71,8 +71,9 @@ var myList = new ListAdapter("#list", {
 ```
 
 ## Demo
-Below you can find the demo code.
-Or you can see the demo project here: list adapter demo 
+You can find demos in this repo.
+Or you can try demo: [list adapter demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
+Or benchmark demo: [list adapter demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)
 
 ## Advanced
 To avoid some flickerings when scrolling very fast, the ListAdapter loads extra views off-screen.

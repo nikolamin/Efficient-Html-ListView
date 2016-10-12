@@ -11,17 +11,12 @@
 						item.image = item.q("img");
 					},
 					onItemLoad: function(item, index, itemData) {
-						item.title.innerText = itemData.title;
-						item.description.innerText = itemData.description;
+						item.title.innerText = "This is item " + (index+1);
+						item.description.innerText = "This is description for item " + (index+1);
 						item.image.src = "https://www.w3.org/html/logo/downloads/HTML5_Logo_512.png";
 					}
 				});
-				listItems.setItems([
-					{ title: "First Item", description: "First item description" },
-					{ title: "Second Item", description: "Second item description" },
-					{ title: "Thrid Item", description: "Thrid item description" },
-					{ title: "4th Item", description: "4th item description" }
-				]);
+				listItems.setItemsCount(1000000);
 			}, true);
 		</script>
 
