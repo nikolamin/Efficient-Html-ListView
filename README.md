@@ -71,10 +71,13 @@ var myList = new ListAdapter("#list", {
 ```
 
 ## Demo
-You can find demos in this repo.
-Or you can try demo: [list adapter demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
+Demos are included in this repo.
+You can try demo: [list adapter demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
 Or benchmark demo: [list adapter demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)
 
 ## Advanced
 To avoid some flickerings when scrolling very fast, the ListAdapter loads extra views off-screen.
 By default they are 3 from top and 3 from bottom, you can configure this by changing value of `myList.offscreenItems`
+
+## Author
+[Nikola Minoski](https://github.com/nikolamin)
