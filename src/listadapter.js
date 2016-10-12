@@ -117,7 +117,7 @@ ListAdapter.prototype.setItems = function(items, offset) {
 		this.itemsCount = items.length;
 		this.items = items;	
 	} else {
-		if((offset + items.length) < this.itemsCount) {
+		if((offset + items.length) > this.itemsCount) {
 			this.itemsCount = offset + items.length;
 		}
 		for (var i = 0; i < items.length; i++) {
@@ -249,4 +249,3 @@ ListAdapter.prototype.invalidate = function() {
 		this.itemLoadHandler(item.viewHolder, index, this.items[index]);
 	};
 }
-
