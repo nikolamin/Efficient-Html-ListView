@@ -126,8 +126,9 @@ ListAdapter.prototype.setItems = function(items, offset) {
 	}
 	this.containerEl.style.height = this.itemsCount * this.itemHeight;
 
-	this.updateItems();
-	this.invalidate();
+	window.requestAnimationFrame(this.updateItems.bind(this));
+	window.requestAnimationFrame(this.invalidate.bind(this));
+
 };
 
 ListAdapter.prototype.setItemsCount = function(num) {
@@ -136,8 +137,8 @@ ListAdapter.prototype.setItemsCount = function(num) {
 
 	this.containerEl.style.height = this.itemsCount * this.itemHeight;
 	
-	this.updateItems();
-	this.invalidate();
+	window.requestAnimationFrame(this.updateItems.bind(this));
+	window.requestAnimationFrame(this.invalidate.bind(this));
 }
 
 ListAdapter.prototype.createBaseViewHolder = function(el) {
@@ -204,7 +205,7 @@ ListAdapter.prototype.updateItems = function() {
 		}
 	}
 
-	while(this.firstEl && this.firstEl.offsetTop > topOffscreen) {
+	if(this.firstEl && this.firstEl.offsetTop > topOffscreen) {
 		var index = this.firstEl.position - 1;
 		if(index >= 0) {
 			var el = this.getItemEl(index);
@@ -213,19 +214,16 @@ ListAdapter.prototype.updateItems = function() {
 			list.prependChild(el);
 			this.firstEl = el;
 			if(!this.lastEl) this.lastEl = this.firstEl;
-		} else {
-			break;
+			window.requestAnimationFrame(this.updateItems.bind(this));
 		}
 	}
 
-	while(!this.lastEl || (this.lastEl.offsetTop + this.lastEl.offsetHeight) < bottomOffscreen) {
-		var index = 0;
+	if(!this.lastEl || (this.lastEl.offsetTop + this.lastEl.offsetHeight) < bottomOffscreen) {
+		var index = -1;
 		if(this.lastEl) {
 			index = this.lastEl.position + 1;	
 		} else if(this.itemsCount > 0) {
 			index = Math.max(Math.floor(scrollOffset / itemHeight), 0);
-		} else {
-			break;
 		}
 		if(index >= 0 && index < this.itemsCount) {
 			var el = this.getItemEl(index);
@@ -234,8 +232,7 @@ ListAdapter.prototype.updateItems = function() {
 			list.appendChild(el);
 			this.lastEl = el;
 			if(!this.firstEl) this.firstEl = this.lastEl;
-		} else {
-			break;
+			window.requestAnimationFrame(this.updateItems.bind(this));
 		}
 	}
 	this.scrollLock = false;
