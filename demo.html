@@ -1,0 +1,79 @@
+<html>
+	<head>
+		<script src="src/listadapter.js"></script>
+		<script type="text/javascript">
+			window.addEventListener('load', function() {
+
+				listItems = new ListAdapter("#list", {
+					onItemCreate: function(item) {
+						item.title = item.q("h2");
+						item.description = item.q("h3");
+						item.image = item.q("img");
+					},
+					onItemLoad: function(item, index, itemData) {
+						item.title.innerText = itemData.title;
+						item.description.innerText = itemData.description;
+						item.image.src = "https://www.w3.org/html/logo/downloads/HTML5_Logo_512.png";
+					}
+				});
+				listItems.setItems([
+					{ title: "First Item", description: "First item description" },
+					{ title: "Second Item", description: "Second item description" },
+					{ title: "Thrid Item", description: "Thrid item description" },
+					{ title: "4th Item", description: "4th item description" }
+				]);
+			}, true);
+		</script>
+
+		<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+		<style type="text/css">
+			body {
+				margin: 0px;	
+			}
+			.item {
+				width: 80%;
+				height: 200px;
+				margin-left: 10%;
+			}
+			.item img { 
+				height: 180px;
+			}
+			.item-content {
+				display: flex;
+				flex-direction: row;
+				-webkit-justify-content: space-around; /* Safari 6.1+ */
+				justify-content: space-around;
+				padding: 10px;
+				background-color: #DDD;
+				border-bottom: solid 1px lightgray;
+			}
+			.item-list {
+				float: right;
+			}
+			.list {
+				background-color: #EEE;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="list" id="list">
+			<div class="item">
+				<div class="item-content">
+					<img />
+					<div>
+						<h2>Title</h2>
+						<h3>Description</h3>
+					</div>
+					<div class="item-list">
+						<div><i class="fa fa-car" aria-hidden="true"></i></div>
+						<div><i class="fa fa-facebook" aria-hidden="true"></i></div>
+						<div><i class="fa fa-wifi" aria-hidden="true"></i></div>
+						<div><i class="fa fa-android" aria-hidden="true"></i></div>
+						<div><i class="fa fa-apple" aria-hidden="true"></i></div>
+					</div>
+				</div>
+			</div>
+
+		</div>
+	</body>
+</html>
