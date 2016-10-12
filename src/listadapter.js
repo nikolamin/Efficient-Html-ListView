@@ -60,7 +60,7 @@ var ListAdapter = function(containerEl, adapter) {
 	this.itemLoadHandler = (adapter && adapter.onItemLoad) || function(){};
 
 	this.itemsCount = 0;
-	this.offscreenItems = 3;
+	this.offscreenItems = 1;
 
 	this.itemsPool = new Array();
 
@@ -70,17 +70,19 @@ var ListAdapter = function(containerEl, adapter) {
 	if(containerEl.childElementCount == 0)
 		throw new "List container must have at least 1 element as a template.";
 
+
+	var tmpDisplay = containerEl.style.display;
+	containerEl.style.display = 'block';
+	
 	var item = containerEl.children[0];
 	this.itemHeight = item.offsetHeight;
+	if(this.itemHeight == 0)
+		this.itemHeight = parseInt(item.style.height);
 
-	this.lists = {};
-	var lists = item.querySelectorAll('list');
-	for (var i = 0; i < lists.length; i++) {
-		var list = lists[i];
-		var key = list.attributes["data-key"].value;
-		this.lists[key] = list.innerHTML;
-		list.parentNode.replaceChild("{{" + key + "}}", list);
-	};
+	this.offsetTop = containerEl.offsetTop;
+	containerEl.style.display = tmpDisplay;
+
+
 	item.style.position = "absolute";
 	this.itemHtml = item.outerHTML;
 
@@ -104,7 +106,7 @@ ListAdapter.prototype.destroy = function() {
 
 
 ListAdapter.prototype.postUpdate = function() {
-	if(!this.scrollLock) {
+	if(!this.scrollLock && this.containerEl.offsetParent != null) {
     	this.scrollLock = true;
 		window.requestAnimationFrame(this.updateItems.bind(this));
 	}
@@ -169,6 +171,8 @@ ListAdapter.prototype.updateItems = function() {
 	var itemHeight = this.itemHeight;
 	var itemHtml = this.itemHtml;
 
+	this.offsetTop = list.offsetTop;
+	
 	var scrollOffset = scroll.getScrollTop();
 	var topOffscreen = scrollOffset - (this.offscreenItems  * this.itemHeight);
 	var bottomOffscreen = scroll.getHeight() + (this.offscreenItems * this.itemHeight) + scrollOffset;
@@ -205,7 +209,7 @@ ListAdapter.prototype.updateItems = function() {
 		if(index >= 0) {
 			var el = this.getItemEl(index);
 			el.position = index;
-			el.style.top = index * itemHeight;
+			el.style.top = this.offsetTop + index * itemHeight;
 			list.prependChild(el);
 			this.firstEl = el;
 			if(!this.lastEl) this.lastEl = this.firstEl;
@@ -226,7 +230,7 @@ ListAdapter.prototype.updateItems = function() {
 		if(index >= 0 && index < this.itemsCount) {
 			var el = this.getItemEl(index);
 			el.position = index;
-			el.style.top = index * itemHeight;
+			el.style.top = this.offsetTop + index * itemHeight;
 			list.appendChild(el);
 			this.lastEl = el;
 			if(!this.firstEl) this.firstEl = this.lastEl;
@@ -244,6 +248,7 @@ ListAdapter.prototype.invalidate = function() {
 	for (var i = 0; i < list.childElementCount; i++) {
 		var item = list.children[i];
 		var index = item.position;
+		item.style.top = this.offsetTop + index * this.itemHeight;
 		this.itemLoadHandler(item.viewHolder, index, this.items[index]);
 	};
 }
