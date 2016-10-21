@@ -14,7 +14,7 @@ HTMLElement.prototype.getHeight = function() {
 }
 HTMLDocument.prototype.getScrollTop = HTMLElement.prototype.getScrollTop = function() {
 	var doc = document.documentElement;
-	return (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+	return this.scrollTop || ((window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0));
 }
 HTMLDocument.prototype.getScrollLeft = HTMLElement.prototype.getScrollLeft = function() {
 	var doc = document.documentElement;
