@@ -88,11 +88,15 @@ var ListAdapter = function(containerEl, adapter) {
 	if(adapter instanceof ListAdapter) {
 		this.itemCreateHandler = adapter.itemCreateHandler;
 		this.itemLoadHandler = adapter.itemLoadHandler;
+		this.itemTypeResolver = adapter.itemTypeResolver;
 		this.itemsCount = 0;
 		this.offscreenItems = adapter.offscreenItems;
 		//Shared items pool
 		this.itemsPool = adapter.itemsPool;
 		this.itemHeight = adapter.itemHeight;
+		this.itemsByType = adapter.itemsByType;
+		this.itemsY = [];
+		this.isMultiType = adapter.isMultiType;
 
 		var tmpDisplay = containerEl.style.display;
 		containerEl.style.display = 'block';
@@ -118,6 +122,7 @@ var ListAdapter = function(containerEl, adapter) {
 		this.itemsPool = {};
 		this.itemsByType = {};
 		this.itemsY = [];
+		this.isMultiType = false;
 
 		var tmpDisplay = containerEl.style.display;
 		containerEl.style.display = 'block';
@@ -141,6 +146,9 @@ var ListAdapter = function(containerEl, adapter) {
 				html: item.outerHTML
 			};
 			this.itemsPool[itemType] = new Array();
+
+			if(itemType != 0)
+				this.isMultiType = true;
 
 			item.remove();
 			this.itemHeight = Math.max(this.itemHeight, itemHeight);
@@ -234,7 +242,7 @@ ListAdapter.prototype.setItems = function(items, offset) {
 		this.items = items;
 		this.itemsY = new Array();
 
-		if(Object.keys(this.itemsByType).length > 1) {
+		if(this.isMultiType) {
 			var height = 0;
 			for (var i = 0; i < items.length; i++) {
 				var type = this.itemTypeResolver(i, items[i]);
@@ -301,11 +309,11 @@ ListAdapter.prototype.recycleItem = function(el) {
 	el.remove();
 };
 
-ListAdapter.prototype.getPositionForItem = function(index, nolog) {
+ListAdapter.prototype.getPositionForItem = function(index) {
 	if(this.itemsY[index] != undefined) {
 		return this.itemsY[index];
-	} if(Object.keys(this.itemsByType).length == 1) {
-		return this.itemsY[index] = this.offsetTop + index * this.itemHeight;
+	} if(this.isMultiType) {
+		return this.itemsY[index] = index * this.itemHeight;
 	} else if(index == 0) {
 		return this.itemsY[index] = 0;
 	} else {
