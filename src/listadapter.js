@@ -312,7 +312,7 @@ ListAdapter.prototype.recycleItem = function(el) {
 ListAdapter.prototype.getPositionForItem = function(index) {
 	if(this.itemsY[index] != undefined) {
 		return this.itemsY[index];
-	} if(this.isMultiType) {
+	} if(!this.isMultiType) {
 		return this.itemsY[index] = index * this.itemHeight;
 	} else if(index == 0) {
 		return this.itemsY[index] = 0;
@@ -413,7 +413,7 @@ ListAdapter.prototype.invalidate = function() {
 		var item = list.children[i];
 		var index = item.position;
 		item.style.top = this.offsetTop + this.getPositionForItem(index);
-		this.itemLoadHandler(item.viewHolder, index, this.items[index]);
+		this.itemLoadHandler(item.viewHolder, index, this.items[index], item.viewHolder.itemType);
 	};
 }
 
