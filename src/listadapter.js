@@ -20,6 +20,12 @@ HTMLDocument.prototype.getScrollLeft = HTMLElement.prototype.getScrollLeft = fun
 	var doc = document.documentElement;
 	return (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
 }
+HTMLElement.prototype.addClass = function(className) {
+	this.className += ' ' + className;
+}
+HTMLElement.prototype.removeClass = function(className) {
+	this.className = this.className.replace(className, '');
+}
 
 HTMLElement.prototype.scrollParent = function() {
 	var regex = /(auto|scroll)/;
@@ -51,64 +57,167 @@ HTMLElement.prototype.scrollParent = function() {
 	return scrollParent;
 }();
 
+var GroupSelector = function(listEl) {
+	this.target = listEl;
+};
+GroupSelector.prototype.attr = function(key, val) {
+	this.target.forEach(function(el) {
+		el[key] = val;
+	});
+};
+GroupSelector.prototype.css = function(key, val) {
+	this.target.forEach(function(el) {
+		el.style[key] = val;
+	});
+};
+GroupSelector.prototype.className = function(className) {
+	this.target.forEach(function(el) {
+		el.className = className;
+	});
+};
+
 var ListAdapter = function(containerEl, adapter) {
 	if(typeof(containerEl) == "string") {
 		containerEl = document.querySelector(containerEl);
 	}
 	this.containerEl = containerEl;
-	this.itemCreateHandler = (adapter && adapter.onItemCreate) || function(){};
-	this.itemLoadHandler = (adapter && adapter.onItemLoad) || function(){};
-
-	this.itemsCount = 0;
-	this.offscreenItems = 1;
-
-	this.itemsPool = new Array();
-
 	if(!containerEl || containerEl === null)
 		throw new "List container not specified.";
 
-	if(containerEl.childElementCount == 0)
-		throw new "List container must have at least 1 element as a template.";
+	//Copy constructor
+	if(adapter instanceof ListAdapter) {
+		this.itemCreateHandler = adapter.itemCreateHandler;
+		this.itemLoadHandler = adapter.itemLoadHandler;
+		this.itemsCount = 0;
+		this.offscreenItems = adapter.offscreenItems;
+		//Shared items pool
+		this.itemsPool = adapter.itemsPool;
+		this.itemHeight = adapter.itemHeight;
+
+		var tmpDisplay = containerEl.style.display;
+		containerEl.style.display = 'block';
+		this.offsetTop = containerEl.offsetTop;
+		containerEl.style.display = tmpDisplay;
+
+		this.itemHtml = adapter.itemHtml;
+		
+		this.scrollParentEl = this.containerEl.scrollParent();
+		this.scrollParentEl.addEventListener("scroll", this.postUpdate.bind(this), false);
+		window.addEventListener("resize", this.postUpdateAndInvalidate.bind(this));
+	} else {	
+		this.itemCreateHandler = (adapter && adapter.onItemCreate) || function(){};
+		this.itemLoadHandler = (adapter && adapter.onItemLoad) || function(){};
+
+		this.itemsCount = 0;
+		this.offscreenItems = 3;
+
+		this.itemsPool = new Array();
+
+		if(containerEl.childElementCount == 0)
+			throw new "List container must have at least 1 element as a template.";
 
 
-	var tmpDisplay = containerEl.style.display;
-	containerEl.style.display = 'block';
-	
-	var item = containerEl.children[0];
-	this.itemHeight = item.offsetHeight;
-	if(this.itemHeight == 0)
-		this.itemHeight = parseInt(item.style.height);
+		var tmpDisplay = containerEl.style.display;
+		containerEl.style.display = 'block';
+		
+		var item = containerEl.children[0];
+		item.remove();
+		document.body.appendChild(item);
 
-	this.offsetTop = containerEl.offsetTop;
-	containerEl.style.display = tmpDisplay;
+		this.itemHeight = item.offsetHeight;
+		if(this.itemHeight == 0) {
+			this.itemHeight = item.clientHeight;
+		}
+		if(this.itemHeight == 0) {
+			this.itemHeight = parseInt(item.style.height);
+		}
 
+		this.offsetTop = containerEl.offsetTop;
+		containerEl.style.display = tmpDisplay;
 
-	item.style.position = "absolute";
-	this.itemHtml = item.outerHTML;
+		item.style.position = "absolute";
+		this.itemHtml = item.outerHTML;
 
-	var item = this.createBaseViewHolder(item);
-	this.itemCreateHandler(item);
-	this.recycleItem(item.el);
+		var item = this.createBaseViewHolder(item);
+		this.itemCreateHandler(item);
+		this.recycleItem(item.el);
 
-	this.scrollParentEl = this.containerEl.scrollParent();
-	this.scrollParentEl.addEventListener("scroll", this.postUpdate.bind(this), false);
-	window.addEventListener("resize", this.postUpdate.bind(this));
+		this.scrollParentEl = this.containerEl.scrollParent();
+		this.scrollParentEl.addEventListener("scroll", this.postUpdate.bind(this), false);
+		window.addEventListener("resize", this.postUpdateAndInvalidate.bind(this));
+	}
 };
 
 ListAdapter.prototype.destroy = function() {
 	this.scrollParentEl.removeEventListener("scroll", this.postUpdate.bind(this));
-	window.removeEventListener("resize", this.postUpdate.bind(this));
+	window.removeEventListener("resize", this.postUpdateAndInvalidate.bind(this));
 	this.itemsPool = undefined;
 	this.items = undefined;
 	this.itemHtml = undefined;
 	this.containerEl = undefined;
-}
+};
 
+ListAdapter.prototype.updateItemSize = function(itemSize) {
+	this.itemHeight = itemSize;
+	while(this.containerEl.childElementCount > 0) {
+		this.recycleItem(this.containerEl.children[0]);
+	}
+	this.containerEl.style.height = this.itemsCount * itemSize;
+	this.firstEl = this.lastEl = undefined;
+	this.postUpdateAndInvalidate();
+}
 
 ListAdapter.prototype.postUpdate = function() {
 	if(!this.scrollLock && this.containerEl.offsetParent != null) {
     	this.scrollLock = true;
 		window.requestAnimationFrame(this.updateItems.bind(this));
+	}
+};
+ListAdapter.prototype.postUpdateAndInvalidate = function() {
+	if(!this.scrollLock && this.containerEl.offsetParent != null) {
+    	this.scrollLock = true;
+
+    	if(this.firstEl != undefined) {
+	    	var itemHeight = this.firstEl.offsetHeight;
+	    	if(itemHeight == 0) {
+	    		itemHeight = this.firstEl.clientHeight;
+	    	}
+	    	if(itemHeight == 0) {
+	    		itemHeight = parseInt(this.firstEl.style.height);
+	    	}
+	    	if(itemHeight > 0 && itemHeight != this.itemHeight) {
+	    		this.updateItemSize(itemHeight);
+	    	}
+	    }
+		window.requestAnimationFrame(this.updateAndInvalidate.bind(this));
+	}
+};
+
+ListAdapter.prototype.updateAndInvalidate = function() {
+	this.updateItems();
+	this.invalidate();
+};
+
+ListAdapter.prototype.inAnimation = function() {
+	var list = this.containerEl;
+	var diff = this.offsetTop - list.offsetTop;
+	
+	if(this._inAnimationStart == undefined)
+		this._inAnimationStart = new Date().getTime();
+
+	if(diff != 0) {
+		window.requestAnimationFrame(function() {
+			this.offsetTop = list.offsetTop;
+			for (var i = 0; i < list.childElementCount; i++) {
+				var item = list.children[i];
+				item.style.top = this.offsetTop + item.position * this.itemHeight;
+			};
+			setTimeout(this.inAnimation.bind(this), 16.5);
+		}.bind(this));
+	} else if((new Date().getTime() - this._inAnimationStart) < 200) {
+		setTimeout(this.inAnimation.bind(this), 20);
+	} else {
+		this._inAnimationStart = undefined;
 	}
 }
 
@@ -140,9 +249,11 @@ ListAdapter.prototype.setItemsCount = function(num) {
 	window.requestAnimationFrame(this.updateItems.bind(this));
 	window.requestAnimationFrame(this.invalidate.bind(this));
 }
-
+ListAdapter.prototype._queryAll = function(el, query) {
+	return new GroupSelector(el.querySelectorAll(query));
+}
 ListAdapter.prototype.createBaseViewHolder = function(el) {
-	var vh = { el: el, q: el.querySelector.bind(el) };
+	var vh = { el: el, q: el.querySelector.bind(el), all: this._queryAll.bind(this, el) };
 	el.viewHolder = vh;
 	return vh;
 }
@@ -249,3 +360,4 @@ ListAdapter.prototype.invalidate = function() {
 		this.itemLoadHandler(item.viewHolder, index, this.items[index]);
 	};
 }
+
