@@ -82,12 +82,12 @@ var myList = new ListAdapter("#list", {
 
 ## Demo
 Demos are included in this repo.
-You can try demos:
-[Simple List demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
-[Simple List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)
-[Multi-ViewType List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-multitype.html)
+You can try demos:  
+[Simple List demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)  
+[Simple List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)  
+[Multi-ViewType List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-multitype.html)  
 
-You can also set just number of items and later set items data in chunks.
+You can also set just number of items and later set items data in chunks.  
 [Lazy Load List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-lazy-load.html)
 
 ## Advanced
