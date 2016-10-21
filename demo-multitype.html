@@ -3,40 +3,38 @@
 		<script src="src/listadapter.js"></script>
 		<script type="text/javascript">
 			window.addEventListener('load', function() {
+
 				listItems = new ListAdapter("#list", {
-					onItemCreate: function(item) {
-						item.title = item.q("h2");
-						item.description = item.q("h3");
-						item.image = item.q("img");
+					getItemType: function(index, itemData) {
+						return itemData.isCategory ? "category" : "item";
 					},
-					onItemLoad: function(item, index, itemData) {
-						if(itemData != undefined) {
-							item.title.innerText = itemData.title;
+					onItemCreate: function(item, itemType) {
+						if(itemType == "category") {
+							item.title = item.q("span");
+						} else {
+							item.title = item.q("h2");
+							item.description = item.q("h3");
+							item.image = item.q("img");
+						}
+					},
+					onItemLoad: function(item, index, itemData, itemType) {
+						item.title.innerText = itemData.title;
+						if(itemType == "item") {
 							item.description.innerText = itemData.description;
 							item.image.src = "https://www.w3.org/html/logo/downloads/HTML5_Logo_512.png";
-						} else {
-							item.title.innerText = "Loading..";
-							item.description.innerText = "";
 						}
 					}
 				});
-				listItems.setItemsCount(100);
-				var data = [
-					{ title: "First Item", description: "First item description" },
-					{ title: "Second Item", description: "Second item description" },
-					{ title: "Thrid Item", description: "Thrid item description" },
-					{ title: "4th Item", description: "4th item description" }
-				];
+				var data = [];
+				for (var i = 0; i < 50; i++) {
+					data.push({ title: "Cagegory " + i, isCategory: true });
+					data.push({ title: i + ") First Item", description: "First item description" });
+					data.push({ title: i + ") Second Item", description: "Second item description" });
+					data.push({ title: i + ") Thrid Item", description: "Thrid item description" });
+					data.push({ title: i + ") 4th Item", description: "4th item description" });
 
-				var offset = 0;
-				loadNext = function() {
-					listItems.setItems(data, offset);
-					offset += data.length;
-					if(offset < 100) {
-						setTimeout(loadNext, 1000);
-					}
-				}
-				setTimeout(loadNext, 500);
+				};
+				listItems.setItems(data);
 			}, true);
 		</script>
 
@@ -44,6 +42,14 @@
 		<style type="text/css">
 			body {
 				margin: 0px;	
+			}
+			.category {
+				width: 80%;
+				height: 30px;
+				margin-left: 10%;
+				background-color: #CCC;
+				line-height: 30px;
+				padding-left: 10px;
 			}
 			.item {
 				width: 80%;
@@ -72,7 +78,10 @@
 	</head>
 	<body>
 		<div class="list" id="list">
-			<div class="item">
+			<div class="category" data-item-type="category">
+				<span>Category</span>
+			</div>
+			<div class="item" data-item-type="item">
 				<div class="item-content">
 					<img />
 					<div>

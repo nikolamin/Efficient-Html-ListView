@@ -107,40 +107,47 @@ var ListAdapter = function(containerEl, adapter) {
 	} else {	
 		this.itemCreateHandler = (adapter && adapter.onItemCreate) || function(){};
 		this.itemLoadHandler = (adapter && adapter.onItemLoad) || function(){};
+		this.itemTypeResolver = (adapter && adapter.getItemType) || function(){ return 0; };
 
 		this.itemsCount = 0;
 		this.offscreenItems = 3;
 
-		this.itemsPool = new Array();
-
 		if(containerEl.childElementCount == 0)
 			throw new "List container must have at least 1 element as a template.";
 
+		this.itemsPool = {};
+		this.itemsByType = {};
+		this.itemsY = [];
 
 		var tmpDisplay = containerEl.style.display;
 		containerEl.style.display = 'block';
 		
-		var item = containerEl.children[0];
-		item.remove();
-		document.body.appendChild(item);
+		this.itemHeight = 0;
+		while (containerEl.childElementCount > 0) {
+			var item = containerEl.children[0];
+			item.remove();
+			document.body.appendChild(item);
 
-		this.itemHeight = item.offsetHeight;
-		if(this.itemHeight == 0) {
-			this.itemHeight = item.clientHeight;
-		}
-		if(this.itemHeight == 0) {
-			this.itemHeight = parseInt(item.style.height);
-		}
+			var itemHeight = item.offsetHeight;
+			if(itemHeight == 0) {
+				itemHeight = parseInt(item.style.height);
+			}
 
+			item.style.position = "absolute";
+
+			var itemType = (item.attributes['data-item-type'] && item.attributes['data-item-type'].value) || 0;
+			this.itemsByType[itemType] = {
+				height: itemHeight,
+				html: item.outerHTML
+			};
+			this.itemsPool[itemType] = new Array();
+
+			item.remove();
+			this.itemHeight = Math.max(this.itemHeight, itemHeight);
+		};
+		
 		this.offsetTop = containerEl.offsetTop;
 		containerEl.style.display = tmpDisplay;
-
-		item.style.position = "absolute";
-		this.itemHtml = item.outerHTML;
-
-		var item = this.createBaseViewHolder(item);
-		this.itemCreateHandler(item);
-		this.recycleItem(item.el);
 
 		this.scrollParentEl = this.containerEl.scrollParent();
 		this.scrollParentEl.addEventListener("scroll", this.postUpdate.bind(this), false);
@@ -224,17 +231,32 @@ ListAdapter.prototype.inAnimation = function() {
 ListAdapter.prototype.setItems = function(items, offset) {
 	if(offset == undefined) {
 		this.itemsCount = items.length;
-		this.items = items;	
+		this.items = items;
+		this.itemsY = new Array();
+
+		if(Object.keys(this.itemsByType).length > 1) {
+			var height = 0;
+			for (var i = 0; i < items.length; i++) {
+				var type = this.itemTypeResolver(i, items[i]);
+				height += this.itemsByType[type].height;
+			};
+			this.containerEl.style.height = height;
+		} else {
+			this.containerEl.style.height = this.itemsByType[0].height * items.length;
+		}
 	} else {
 		if((offset + items.length) > this.itemsCount) {
 			this.itemsCount = offset + items.length;
 		}
+		var addedHeight = 0;
 		for (var i = 0; i < items.length; i++) {
 			this.items[i + offset] = items[i];
+			var type = this.itemTypeResolver(i + offset, items[i]);
+			addedHeight += this.itemHeight - this.itemsByType[type].height;
 		}
+		this.containerEl.style.height -= addedHeight;
 	}
-	this.containerEl.style.height = this.itemsCount * this.itemHeight;
-
+	
 	window.requestAnimationFrame(this.updateItems.bind(this));
 	window.requestAnimationFrame(this.invalidate.bind(this));
 
@@ -252,41 +274,67 @@ ListAdapter.prototype.setItemsCount = function(num) {
 ListAdapter.prototype._queryAll = function(el, query) {
 	return new GroupSelector(el.querySelectorAll(query));
 }
-ListAdapter.prototype.createBaseViewHolder = function(el) {
-	var vh = { el: el, q: el.querySelector.bind(el), all: this._queryAll.bind(this, el) };
+ListAdapter.prototype.createViewHolder = function(el, itemType) {
+	var vh = { el: el, itemType: itemType, q: el.querySelector.bind(el), all: this._queryAll.bind(this, el) };
 	el.viewHolder = vh;
 	return vh;
 }
 ListAdapter.prototype.getItemEl = function(index) {
-	var item = this.itemsPool.pop();
+	var data = this.items[index];
+	var type = this.itemTypeResolver(index, data);
+	var item = this.itemsPool[type].pop();
 	if(item == undefined) {
 		var div = document.createElement('div');
-		div.innerHTML = this.itemHtml;
-		item = this.createBaseViewHolder(div.firstChild);
-		this.itemCreateHandler(item);
+		div.innerHTML = this.itemsByType[type].html;
+		item = this.createViewHolder(div.firstChild, type);
+		this.itemCreateHandler(item, type);
 	}
 
-	this.itemLoadHandler(item, index, this.items[index]);
+	this.itemLoadHandler(item, index, this.items[index], type);
 
 	return item.el;
 };
 
 ListAdapter.prototype.recycleItem = function(el) {
-	this.itemsPool.push(el.viewHolder);
+	var vh = el.viewHolder;
+	this.itemsPool[vh.itemType].push(vh)
 	el.remove();
 };
+
+ListAdapter.prototype.getPositionForItem = function(index, nolog) {
+	if(this.itemsY[index] != undefined) {
+		return this.itemsY[index];
+	} if(Object.keys(this.itemsByType).length == 1) {
+		return this.itemsY[index] = this.offsetTop + index * this.itemHeight;
+	} else if(index == 0) {
+		return this.itemsY[index] = 0;
+	} else {
+		var type = this.itemTypeResolver(index-1, this.items[index-1]);
+		return this.itemsY[index] = (this.getPositionForItem(index-1) + this.itemsByType[type].height);
+	}
+}
+
+//Not optimal. Divide and conquer should be used.
+ListAdapter.prototype.getItemForPosition = function(y) {
+	for (var i = 0; i < this.items.length; i++) {
+		var pos = this.getPositionForItem(i);
+		if(pos >= y)
+			return i;
+	};
+	return -1;
+}
 
 ListAdapter.prototype.updateItems = function() {
 	this.scrollLock = true;
 	var list = this.containerEl;
 	var scroll = this.scrollParentEl;
-	var itemHeight = this.itemHeight;
-	var itemHtml = this.itemHtml;
+	var itemsByType = this.itemsByType;
+	var itemsPool = this.itemsPool;
 
 	this.offsetTop = list.offsetTop;
 	
 	var scrollOffset = scroll.getScrollTop();
-	var topOffscreen = scrollOffset - (this.offscreenItems  * this.itemHeight);
+	var topOffscreen = scrollOffset - (this.offscreenItems * this.itemHeight);
 	var bottomOffscreen = scroll.getHeight() + (this.offscreenItems * this.itemHeight) + scrollOffset;
 
 	while(this.firstEl) {
@@ -321,7 +369,7 @@ ListAdapter.prototype.updateItems = function() {
 		if(index >= 0) {
 			var el = this.getItemEl(index);
 			el.position = index;
-			el.style.top = this.offsetTop + index * itemHeight;
+			el.style.top = this.offsetTop + this.getPositionForItem(index);
 			list.prependChild(el);
 			this.firstEl = el;
 			if(!this.lastEl) this.lastEl = this.firstEl;
@@ -332,14 +380,14 @@ ListAdapter.prototype.updateItems = function() {
 	if(!this.lastEl || (this.lastEl.offsetTop + this.lastEl.offsetHeight) < bottomOffscreen) {
 		var index = -1;
 		if(this.lastEl) {
-			index = this.lastEl.position + 1;	
+			index = this.lastEl.position + 1;
 		} else if(this.itemsCount > 0) {
-			index = Math.max(Math.floor(scrollOffset / itemHeight), 0);
+			index = this.getItemForPosition(scrollOffset);
 		}
 		if(index >= 0 && index < this.itemsCount) {
 			var el = this.getItemEl(index);
 			el.position = index;
-			el.style.top = this.offsetTop + index * itemHeight;
+			el.style.top = this.offsetTop + this.getPositionForItem(index);
 			list.appendChild(el);
 			this.lastEl = el;
 			if(!this.firstEl) this.firstEl = this.lastEl;
@@ -356,7 +404,7 @@ ListAdapter.prototype.invalidate = function() {
 	for (var i = 0; i < list.childElementCount; i++) {
 		var item = list.children[i];
 		var index = item.position;
-		item.style.top = this.offsetTop + index * this.itemHeight;
+		item.style.top = this.offsetTop + this.getPositionForItem(index);
 		this.itemLoadHandler(item.viewHolder, index, this.items[index]);
 	};
 }

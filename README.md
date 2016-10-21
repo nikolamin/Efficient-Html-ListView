@@ -1,23 +1,33 @@
 # Efficient-Html-ListView
-Efficiency create view elements and manage dom to render only visible elements. View Holder pattern for populating the views.
+Efficiency create view elements and manage dom to render only visible elements. View Holder pattern for populating the view items.
 Pool for reusing dom elements.
 You can list millions of items without performance issues.
+Define different types of views.
 
 ## Installation
 <script src="src/listadapter.js"></script>
 
 ## Usage
-Create your html with one div as container of the items, and one child inside it as view template (currently only one type of view is supported).
+Create your html with one div as container of the items, and one child inside it as view template.
 Note: Child view must support 'positon: absolute;' displaying.
 
-In your script create an instance of ListAdapter class.
+In your script create an instance of ListAdapter class and adapter for handling populating items.
 ```
-var myList = ListAdapter("#list", adapter);
+var myList = ListAdapter("#list", {
+	onItemCreate: function(item) {
+		item.<ref-to-dom-property> = item.q(<query-selector>);
+		item.<jq-ref-to-dom-property> = $(item.el).find(<query-selector>);
+	},
+	onItemLoad: function(item, index, itemData) {
+		item.<my-property>.innerText = itemData.<my-property>;
+		item.<my-jq-property>.text(itemData.<my-property>);
+	}
+}
+});
 ```
 
-First paramter is querySelector for the list container, it can also be dom element.
+First paramter is querySelector for the list container, it can also be a dom element.
 Second parameter is your adapter implemention to create an populate items.
-The adapter should be an object with following functions as property:
 onItemCreate (optional) : function(item)
 	This callback is invoked each time new item is created, so its recomended here to make references to the elements you want to change later.
 	Paramter 'item' is a view-holder, it have 'el' property which is a reference to the dom element, and 'q' property which is a shortcut-reference to the query selector of 'el', you can attach other properties (references to html elements of the view) to use them later in 'onItemLoad'.
@@ -72,8 +82,13 @@ var myList = new ListAdapter("#list", {
 
 ## Demo
 Demos are included in this repo.
-You can try demo: [list adapter demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
-Or benchmark demo: [list adapter demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)
+You can try demos:
+[Simple List demo](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo.html)
+[Simple List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-1m.html)
+[Multi-ViewType List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-multitype.html)
+
+You can also set just number of items and later set items data in chunks.
+[Lazy Load List demo - with milion items](https://cdn.rawgit.com/nikolamin/Efficient-Html-ListView/master/demo-lazy-load.html)
 
 ## Advanced
 To avoid some flickerings when scrolling very fast, the ListAdapter loads extra views off-screen.
